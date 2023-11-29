@@ -1,3 +1,15 @@
+<h5>
+Un servlet est une application web java qui respecte l’API Java Servlet.
+
+Un servlet peut être écrit en pur code Java ou être généré à partir d’une page JSP.
+
+Un servlet est exécuté par un conteneur de servlets.
+
+Tomcat est le conteneur de servlets de la fondation Apache.
+
+Jenkins est une application Java fournie sous forme de servlet.
+</h5>
+
 <H1>Introduction à Tomcat et Jankins</H1>
 Votre serveur LAMP va vous permettre de bénéficier des nombreuses applications PHP existantes. Cependant, toutes les applications ne sont pas développées en PHP et pour pouvoir installer certains logiciels, vous aurez peut-être besoin d’installer d’autres environnements.
 
@@ -100,3 +112,63 @@ Depuis votre client, vous pouvez alors vous connecter à  http://www.example.com
 <image src="tomcat_application_manager.png" alt="page connexion tomcat" width="500" height="300" center>
 
 # Installez Jenkins comme servlet Tomcat
+Sur la page de téléchargement de Jenkins, téléchargez la version Long-Term Support sous forme d’un “Generic Java Package (.war)” :
+```
+$ cd /tmp
+$ wget http://mirrors.jenkins.io/war-stable/latest/jenkins.war
+```
+Les fichiers de Tomcat sont dans  /var/lib/tomcat8  . Pour installer Jenkins, il vous suffit de déposer votre fichier  .war  dans le répertoire  /var/lib/tomcat8/webapps  qui contient les applications :
+
+```
+$ sudo mv /tmp/jenkins.war /var/lib/tomcat9/webapps
+```
+Votre fichier  .war  est automatiquement déployé, et un répertoire Jenkins est créé.
+
+Avant de pouvoir utiliser Jenkins, il vous reste juste à configurer la variable  JENKINS_HOME  qui indique le chemin dans lequel Jenkins va stocker configurations, logs et builds. Par défaut, ces fichiers seront stockés dans  /root/.jenkins/   , mais vous allez plutôt les mettre dans  /var/lib/jenkins/  . Commencez par créer ce répertoire et donnez les droits à l’utilisateur  tomcat9  qui gère Tomcat :
+```
+$ sudo mkdir /var/lib/jenkins
+$ sudo chown tomcat9:tomcat9
+```
+Puis éditez le fichier  /etc/tomcat9/context.xml  et ajoutez la ligne suivante entre les balises  <Context />  :
+```html
+<Environment name=”JENKINS_HOME” value=”/var/lib/jenkins” type=”java.lang.String” />
+```
+Redémarrez Tomcat et connectez-vous à l’adresse http://www.example.com:8080/jenkins depuis votre client :
+```
+$ sudo systemctl restart tomcat9
+```
+Capture d'écran du navigateur d'un client montrant l'interface d'installation de Jenkins
+Interface d'installation de Jenkins : vérification de la clé secrète
+Suivrez les instructions à l’écran et recopiez le mot de passe que vous trouverez dans  /var/lib/jenkins/secrets/InitialAdminPassword  .
+
+Capture d'écran du navigateur d'un client connecté à l'interface de configuration de Jenkins (phase d'installation des plugins)
+Interface d'installation de Jenkins : installation des plugins
+Si vous rencontrez l’erreur “This Jenkins instance appears to be offline”, ça n’est probablement pas un problème de connexion, c’est un problème de certificat HTTPS. Vous pouvez contourner le problème en éditant l’adresse contenue dans  /var/lib/jenkins/hudson.model.UpdateCenter.xml  pour mettre l’adresse en http:// plutôt que https://. Redémarrez Tomcat, retapez le mot de passe et le problème devrait être résolu.
+
+Suivez ensuite le protocole d’installation : installez les plugins par défaut, créez un compte administrateur et voilà, vous avez installé Jenkins !
+
+En production, il faudra supprimer le répertoire  /var/lib/tomcat9/webapps/ROOT  qui contient l’application “par défaut” de Tomcat, et qui pour l’instant ne contient que la page d’accueil de Tomcat.
+<p style ="color:red">Attention
+ Actuellement, vous utilisez le serveur web Coyote, intégré à Tomcat, sur le port 8080 pour vous connecter à Jenkins. Ce serveur web n’est pas fait pour être utilisé pour servir directement les connexions des clients. Effectivement, il est moins performant pour servir des fichiers statiques, et ne supporte pas nativement le HTTPS. Il est recommandé d’utiliser un serveur web plus robuste tel qu’Apache ou Nginx comme proxy pour renvoyer les requêtes vers Tomcat. Le serveur web gérera la connexion HTTPS, les restrictions d’accès et les pages statiques. Seules les requêtes vers l’application Java seront renvoyées vers Tomcat.
+ </p>
+
+Il existe alors deux moyens de faire communiquer votre serveur web et votre serveur Tomcat :
+
+par le protocole HTTP, le serveur web se contente alors de faire une redirection HTTP vers le serveur Tomcat ;
+
+par le plugin mod_jk (uniquement pour Apache) qui utilise un protocole spécial pour faire communiquer Apache et Tomcat.
+<p style="color:red">Attention
+ 
+En résumé
+Un servlet est une application web java qui respecte l’API Java Servlet.
+
+Un servlet peut être écrit en pur code Java ou être généré à partir d’une page JSP.
+
+Un servlet est exécuté par un conteneur de servlets.
+
+Tomcat est le conteneur de servlets de la fondation Apache.
+
+Jenkins est une application Java fournie sous forme de servlet.
+
+Dans le chapitre suivant, vous verrez comment configurer Nginx en tant que proxy HTTP pour accéder à Tomcat.
+</p>
